@@ -69,7 +69,7 @@ update msg ({items, uid} as model) =
   case msg of
     Insert ->
       ( { model
-        | items = items ++ [ IndexedItem uid { id = uid, text = "moi", x = 50, y = 50, color = Color.black, size = 14 }]
+        | items = items ++ [ IndexedItem uid { text = "moi", x = 50, y = 50, color = Color.black, size = 14 }]
         , uid = uid + 1
         },
         Cmd.none
@@ -82,7 +82,7 @@ update msg ({items, uid} as model) =
       in
         ({ model | items = items }, cmd)
     ShuffleAll->
-      update ((Modify 1) (Shuffle 1)) model
+      update ((Modify 1) Shuffle) model
 
       -- Cmd.Batch List.map (Modify _.id Item.Msg.Shuffle) items
 

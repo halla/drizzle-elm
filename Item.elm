@@ -10,8 +10,7 @@ import Random
 
 
 type alias Model =
-  { id: Int
-  , text: String
+  { text: String
   , x: Int
   , y: Int
   , color: Color.Color
@@ -19,11 +18,10 @@ type alias Model =
   }
 
 type Msg
-  = Shuffle Int
-  --| ShuffleAll
-  | SetRep Int (Int, Int)
-  | SetColor Int Color.Color
-  | SetSize Int Int
+  = Shuffle
+  | SetRep (Int, Int)
+  | SetColor Color.Color
+  | SetSize Int
 
 
 -- UPDATE
@@ -31,27 +29,17 @@ type Msg
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
-    Shuffle id ->
-      if id == model.id then
-        (model ! [ (genPosition id), (genColor id), (genSize id) ])
-      else
-        (model, Cmd.none)
-    SetRep id (x, y) ->
-      if id == model.id then
-        ({ model | x = x, y = y }, Cmd.none)
-      else
-        (model, Cmd.none)
+    Shuffle ->
+      (model ! [ genPosition, genColor, genSize ])
 
-    SetColor id color ->
-      if id == model.id then
-        ({ model | color = color}, Cmd.none)
-      else
-        (model, Cmd.none)
-    SetSize id size ->
-      if id == model.id then
-        ({ model | size = size}, Cmd.none)
-      else
-        (model, Cmd.none)
+    SetRep (x, y) ->
+      ({ model | x = x, y = y }, Cmd.none)
+
+    SetColor color ->
+      ({ model | color = color}, Cmd.none)
+
+    SetSize size ->
+      ({ model | size = size}, Cmd.none)
 
 
 --  VIEW
@@ -78,21 +66,21 @@ renderStyle model =
 view : Model -> Html Msg
 view model =
   div [style [("position", "absolute")]]
-    [ button [onClick (Shuffle model.id)] [text "Shuffle"]
+    [ button [onClick Shuffle] [text "Shuffle"]
     , div [ style (renderStyle model) ] [(text model.text)]
     ]
 
-genSize : Int -> Cmd Msg
-genSize id =
-  Random.generate (SetSize id) (Random.int fontMin fontMax)
+genSize : Cmd Msg
+genSize =
+  Random.generate SetSize (Random.int fontMin fontMax)
 
-genPosition : Int -> Cmd Msg
-genPosition id =
-  Random.generate (SetRep id) (Random.pair (Random.int 1 xMax) (Random.int 1 yMax))
+genPosition : Cmd Msg
+genPosition =
+  Random.generate SetRep (Random.pair (Random.int 1 xMax) (Random.int 1 yMax))
 
-genColor : Int -> Cmd Msg
-genColor id =
-  Random.generate (SetColor id) rgb
+genColor : Cmd Msg
+genColor =
+  Random.generate SetColor rgb
 
 rgb : Random.Generator Color.Color
 rgb =
