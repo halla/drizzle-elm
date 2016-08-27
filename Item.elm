@@ -20,6 +20,7 @@ type alias Model =
 
 type Msg
   = Shuffle Int
+  --| ShuffleAll
   | SetRep Int (Int, Int)
   | SetColor Int Color.Color
   | SetSize Int Int
@@ -76,7 +77,7 @@ renderStyle model =
 
 view : Model -> Html Msg
 view model =
-  div []
+  div [style [("position", "absolute")]]
     [ button [onClick (Shuffle model.id)] [text "Shuffle"]
     , div [ style (renderStyle model) ] [(text model.text)]
     ]
