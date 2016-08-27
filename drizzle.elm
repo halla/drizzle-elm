@@ -6,6 +6,10 @@ import Html.Events exposing (onClick)
 import Item
 import Item exposing (Msg(..))
 import Color
+import Time exposing (Time, second)
+import Char
+import Keyboard
+import Debug
 
 -- TODO
 -- get window size
@@ -33,6 +37,7 @@ main =
 type alias Model =
   { items : List IndexedItem
   , uid : Int
+  , running : Bool
   }
 
 type alias IndexedItem =
@@ -45,6 +50,7 @@ init : (Model, Cmd Msg)
 init =
   ({ items = []
   , uid = 0
+  , running = False
   }, Cmd.none)
   --([ { id = 1, text = "moi", x = 50, y = 50, color = Color.black, size = 14
   --}, { id = 2, text = "fasdfe", x = 150, y = 150, color = Color.black, size = 14
@@ -54,18 +60,25 @@ init =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-  Sub.none
+--..Sub.none
+  --NothingHappened
+  Sub.batch
+    [ Keyboard.downs (\c -> if (Char.fromCode c == ' ') then ToggleRunning else NoOp)
+    , Time.every second Tick
+    ]
 
 
 type Msg
   = Insert
   | Modify Int Item.Msg
   | ShuffleAll
-
+  | Tick Time
+  | ToggleRunning
+  | NoOp
 
 
 update : Msg -> Model -> (Model, Cmd Msg)
-update msg ({items, uid} as model) =
+update msg ({items, uid, running} as model) =
   case msg of
     Insert ->
       ( { model
@@ -83,6 +96,19 @@ update msg ({items, uid} as model) =
         ({ model | items = items }, cmd)
     ShuffleAll->
       update ((Modify 1) Shuffle) model
+    Tick _ ->
+      if
+        running == True
+      then
+        update ShuffleAll model
+      else
+        (model, Cmd.none)
+    ToggleRunning ->
+      Debug.log "hip"
+      ({ model | running = not running }, Cmd.none)
+    NoOp ->
+      Debug.log "asdf"
+      (model, Cmd.none)
 
       -- Cmd.Batch List.map (Modify _.id Item.Msg.Shuffle) items
 
@@ -106,6 +132,8 @@ updateHelp targetId msg {id, model} =
 view : Model -> Html Msg
 view model =
   let
+    status =
+      div [] [ text (if model.running then "Running" else "Stopped")]
     insert =
       button [ onClick Insert ] [ text "Insert" ]
     shuffleAll =
@@ -115,7 +143,7 @@ view model =
       List.map viewIndexedItem model.items
   in
     div [class "screen"]
-      [ div [] ([ shuffleAll ] ++ [ insert ] ++ items)
+      [ div [] ([ status, shuffleAll ] ++ [ insert ] ++ items)
       ]
 
 viewIndexedItem : IndexedItem -> Html Msg
