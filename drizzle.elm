@@ -10,13 +10,14 @@ import Time exposing (Time, second)
 import Char
 import Keyboard
 import Debug
+import Mouse exposing (Position)
 
 -- TODO
 -- get window size
 -- import form
--- animations
 -- single item input
 -- drag items on screen
+-- animations
 -- add items
 --
 -- DONE
@@ -58,14 +59,23 @@ init =
 
 
 
+-- SUBSCRIPTIONS
+
 subscriptions : Model -> Sub Msg
 subscriptions model =
 --..Sub.none
   --NothingHappened
   Sub.batch
-    [ Keyboard.downs (\c -> if (Char.fromCode c == ' ') then ToggleRunning else NoOp)
+    ([ Keyboard.downs (\c -> if (Char.fromCode c == ' ') then ToggleRunning else NoOp)
     , Time.every second Tick
-    ]
+    ] ++
+    List.map subHelp model.items)
+
+
+subHelp : IndexedItem -> Sub Msg
+subHelp {id, model} =
+  Sub.map (Modify id) (Item.subscriptions model)
+--  MODEL
 
 
 type Msg
@@ -82,7 +92,7 @@ update msg ({items, uid, running} as model) =
   case msg of
     Insert ->
       ( { model
-        | items = items ++ [ IndexedItem uid { text = "moi", x = 50, y = 50, color = Color.black, size = 14 }]
+        | items = items ++ [ IndexedItem uid { text = "moi", x = 50, y = 50, color = Color.black, size = 14, drag = Nothing, position = (Position 200 200) }]
         , uid = uid + 1
         },
         Cmd.none

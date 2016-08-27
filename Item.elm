@@ -1,8 +1,10 @@
 module Item exposing (..)
 
-import Html exposing (Html, div, text, button)
+import Html exposing (Html, div, text, button, Attribute)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onClick)
+import Html.Events exposing (onClick, on)
+import Mouse exposing (Position)
+import Json.Decode as Json exposing ((:=))
 
 import Color
 import Random
@@ -15,6 +17,13 @@ type alias Model =
   , y: Int
   , color: Color.Color
   , size: Int
+  , position: Position
+  , drag: Maybe Drag
+  }
+
+type alias Drag =
+  { start : Position
+  , current : Position
   }
 
 type Msg
@@ -22,6 +31,9 @@ type Msg
   | SetRep (Int, Int)
   | SetColor Color.Color
   | SetSize Int
+  | DragAt Position
+  | DragStart Position
+  | DragEnd Position
 
 
 -- UPDATE
@@ -31,15 +43,35 @@ update msg model =
   case msg of
     Shuffle ->
       (model ! [ genPosition, genColor, genSize ])
-
     SetRep (x, y) ->
       ({ model | x = x, y = y }, Cmd.none)
-
     SetColor color ->
       ({ model | color = color}, Cmd.none)
-
     SetSize size ->
       ({ model | size = size}, Cmd.none)
+
+    DragStart xy ->
+      ({ model | drag = (Just (Drag xy xy)) }, Cmd.none)
+
+    DragAt xy ->
+      ({ model | drag = (Maybe.map (\{start} -> Drag start xy) model.drag) }, Cmd.none)
+
+    DragEnd _ ->
+      ({ model | position = (getPosition model), drag = Nothing }, Cmd.none)
+
+
+
+-- SUBSCRIPTIONS
+
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+  case model.drag of
+    Nothing ->
+      Sub.none
+
+    Just _ ->
+      Sub.batch [ Mouse.moves DragAt, Mouse.ups DragEnd ]
 
 
 --  VIEW
@@ -53,10 +85,12 @@ fontMax = 40
 renderStyle model =
   let
     rgba = Color.toRgb model.color
+    realPosition = getPosition model
   in
     [ ("position", "absolute")
-    , ("left", (toString model.x) ++ "px")
-    , ("top", (toString model.y) ++ "px")
+    , ("left", px realPosition.x)
+    , ("top", px realPosition.y)
+    , ("padding", px 10)
     , ("color", "rgb(" ++ toString rgba.red ++ "," ++ toString rgba.green ++ "," ++ toString rgba.blue ++ ")")
     , ("font-size", (toString model.size) ++ "px")
     ]
@@ -65,10 +99,14 @@ renderStyle model =
 
 view : Model -> Html Msg
 view model =
-  div [style [("position", "absolute")]]
+  div [onMouseDown, style [("position", "absolute")]]
     [ button [onClick Shuffle] [text "Shuffle"]
     , div [ style (renderStyle model) ] [(text model.text)]
     ]
+
+px : Int -> String
+px number =
+  toString number ++ "px"
 
 genSize : Cmd Msg
 genSize =
@@ -85,3 +123,19 @@ genColor =
 rgb : Random.Generator Color.Color
 rgb =
   Random.map3 Color.rgb (Random.int 0 255) (Random.int 0 255) (Random.int 0 255)
+
+
+getPosition : Model -> Position
+getPosition {position, drag} =
+  case drag of
+    Nothing ->
+      position
+
+    Just {start,current} ->
+      Position
+        (position.x + current.x - start.x)
+        (position.y + current.y - start.y)
+
+onMouseDown : Attribute Msg
+onMouseDown =
+  on "mousedown" (Json.map DragStart Mouse.position)
