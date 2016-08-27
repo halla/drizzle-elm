@@ -4,6 +4,7 @@ import Html exposing (Html, div, button, text)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick)
 import Item
+import Item exposing (Msg(..))
 import Color
 
 -- TODO
@@ -59,7 +60,7 @@ subscriptions model =
 type Msg
   = Insert
   | Modify Int Item.Msg
-  --| ShuffleAll
+  | ShuffleAll
 
 
 
@@ -80,6 +81,10 @@ update msg ({items, uid} as model) =
         cmd = Cmd.batch (List.map snd xs)
       in
         ({ model | items = items }, cmd)
+    ShuffleAll->
+      update ((Modify 1) (Shuffle 1)) model
+
+      -- Cmd.Batch List.map (Modify _.id Item.Msg.Shuffle) items
 
 
 updateHelp : Int -> Item.Msg -> IndexedItem -> (IndexedItem, Cmd Msg)
@@ -103,12 +108,14 @@ view model =
   let
     insert =
       button [ onClick Insert ] [ text "Insert" ]
+    shuffleAll =
+      button [ onClick ShuffleAll ] [ text "ShuffleAll"]
 
     items =
       List.map viewIndexedItem model.items
   in
     div [class "screen"]
-      [ div [] ([ insert ] ++ items)
+      [ div [] ([ shuffleAll ] ++ [ insert ] ++ items)
       ]
 
 viewIndexedItem : IndexedItem -> Html Msg
