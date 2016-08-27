@@ -1,8 +1,8 @@
 module Item exposing (..)
 
-import Html exposing (Html, div, text, button, Attribute)
+import Html exposing (Html, div, text, button, Attribute, input)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onClick, on)
+import Html.Events exposing (onClick, on, onBlur, onInput)
 import Mouse exposing (Position)
 import Json.Decode as Json exposing ((:=))
 
@@ -19,6 +19,8 @@ type alias Model =
   , size: Int
   , position: Position
   , drag: Maybe Drag
+  , editing: Bool
+  , nextText: String
   }
 
 type alias Drag =
@@ -34,6 +36,9 @@ type Msg
   | DragAt Position
   | DragStart Position
   | DragEnd Position
+  | CommitEditing
+  | StartEditing
+  | NextText String
 
 
 -- UPDATE
@@ -59,6 +64,12 @@ update msg model =
     DragEnd _ ->
       ({ model | position = (getPosition model), drag = Nothing }, Cmd.none)
 
+    CommitEditing ->
+      ({ model | editing = False, text = model.nextText, nextText = "" }, Cmd.none )
+    StartEditing ->
+      ({ model | editing = True, nextText = model.text}, Cmd.none)
+    NextText text ->
+      ({ model | nextText = text }, Cmd.none )
 
 
 -- SUBSCRIPTIONS
@@ -99,10 +110,21 @@ renderStyle model =
 
 view : Model -> Html Msg
 view model =
-  div [onMouseDown, style [("position", "absolute")]]
-    [ button [onClick Shuffle] [text "Shuffle"]
-    , div [ style (renderStyle model) ] [(text model.text)]
-    ]
+  let
+    itemView = div [ onClick StartEditing ] [(text model.text)]
+    itemEdit = input
+      [ onInput NextText
+      , onBlur CommitEditing
+      , value model.nextText
+      , autofocus True
+      ] []
+    item = if model.editing then itemEdit else itemView
+
+  in
+    div [onMouseDown, style (renderStyle model)]
+      [
+      item
+      ]
 
 px : Int -> String
 px number =
