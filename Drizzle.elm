@@ -1,8 +1,9 @@
+module Drizzle exposing (init, view, update, subscriptions)
 
-import Html.App as Html
-import Html exposing (Html, div, button, text)
+import Html.App as App
+import Html exposing (Html, div, button, text, input)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onClick)
+import Html.Events exposing (onClick, onInput, onBlur)
 import Item
 import Item exposing (Msg(..))
 import Color
@@ -26,13 +27,6 @@ import Mouse exposing (Position)
 -- multiple words
 -- return multiple commands
 
-main =
-  Html.program
-    { init = init
-    , view = view
-    , update = update
-    , subscriptions = subscriptions
-    }
 
 
 type alias Model =
@@ -79,7 +73,7 @@ subHelp {id, model} =
 
 
 type Msg
-  = Insert
+  = Insert String
   | Modify Int Item.Msg
   | ShuffleAll
   | Tick Time
@@ -88,11 +82,11 @@ type Msg
 
 
 update : Msg -> Model -> (Model, Cmd Msg)
-update msg ({items, uid, running} as model) =
+update msg ({items, uid, running } as model) =
   case msg of
-    Insert ->
+    Insert content ->
       ( { model
-        | items = items ++ [ IndexedItem uid { text = "moi", x = 50, y = 50, color = Color.black, size = 14, drag = Nothing, position = (Position 200 200) }]
+        | items = items ++ [ IndexedItem uid { text = content, x = 50, y = 50, color = Color.black, size = 18, drag = Nothing, position = (Position 200 200), editing = True, nextText = "" }]
         , uid = uid + 1
         },
         Cmd.none
@@ -144,18 +138,17 @@ view model =
   let
     status =
       div [] [ text (if model.running then "Running" else "Stopped")]
-    insert =
-      button [ onClick Insert ] [ text "Insert" ]
     shuffleAll =
       button [ onClick ShuffleAll ] [ text "ShuffleAll"]
-
+    insertButton =
+      button [ onClick (Insert "some") ] [ text "Insert" ]
     items =
       List.map viewIndexedItem model.items
   in
     div [class "screen"]
-      [ div [] ([ status, shuffleAll ] ++ [ insert ] ++ items)
+      [ div [] ([ status, shuffleAll, insertButton ]  ++ items)
       ]
 
 viewIndexedItem : IndexedItem -> Html Msg
 viewIndexedItem {id, model} =
-  Html.map (Modify id) (Item.view model)
+  App.map (Modify id) (Item.view model)
