@@ -64,13 +64,19 @@ update msg model =
       ({ model | drag = (Maybe.map (\{start} -> Drag start xy) model.drag) }, Cmd.none)
 
     DragEnd _ ->
-
       ({ model | position = (getPosition model), drag = Nothing }, Cmd.none)
 
     CommitEditing ->
       ({ model | editing = False, text = model.nextText, nextText = "" }, Cmd.none )
     StartEditing ->
-      ({ model | editing = True, nextText = model.text}, focus ("#" ++ divId model ++ " input"))
+      let
+        doEdit =   ({ model | editing = True, nextText = model.text}, focus ("#" ++ divId model ++ " input"))
+      in
+      case model.drag of
+          Nothing ->
+            doEdit
+          Just {start,current} ->
+            if start == current then doEdit else ( model, Cmd.none )
     NextText text ->
       ({ model | nextText = text }, Cmd.none )
     NoOp ->
@@ -125,25 +131,29 @@ view model =
       , onBlur CommitEditing
       , value model.nextText
       , autofocus True
-      , editStopClick
       ] []
     item = if model.editing then itemEdit else itemView
-
-  in
-    div [ id (divId model), onMouseDown, onMouseUp, style (renderStyle model)]
+    element = div [ id (divId model), onMouseDown, onMouseUp, class "item", style (renderStyle model)]
       [
       item
       ]
+  in
+    if
+      model.editing
+    then
+      div [ class "modal-wrapper" ] [ element ]
+    else
+      element
 
 
 
 editClick : Attribute Msg
 editClick =
-  onWithOptions "click" { stopPropagation = True, preventDefault = True } (Json.succeed StartEditing)
+  onWithOptions "click" { stopPropagation = False, preventDefault = False } (Json.succeed StartEditing)
 
-editStopClick : Attribute Msg
-editStopClick =
-  onWithOptions "click" { stopPropagation = True, preventDefault = True } (Json.succeed NoOp)
+--editStopClick : Attribute Msg
+--editStopClick =
+  --onWithOptions "click" { stopPropagation = True, preventDefault = True } (Json.succeed NoOp)
 
 px : Int -> String
 px number =
@@ -179,8 +189,8 @@ getPosition {position, drag} =
 
 onMouseDown : Attribute Msg
 onMouseDown =
-  on "mousedown" (Json.map DragStart Mouse.position)
+  onWithOptions "mousedown" { stopPropagation = True, preventDefault = True }  (Json.map DragStart Mouse.position)
 
 onMouseUp : Attribute Msg
 onMouseUp =
-  onWithOptions "mouseup" { stopPropagation = True, preventDefault = True } (Json.map DragEnd Mouse.position)
+  onWithOptions "click" { stopPropagation = True, preventDefault = True } (Json.map DragEnd Mouse.position)
