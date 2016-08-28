@@ -1,9 +1,9 @@
 module Drizzle exposing (init, view, update, subscriptions)
 
 import Html.App as App
-import Html exposing (Html, div, button, text, input)
+import Html exposing (Html, div, button, text, input, Attribute)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onClick, onInput, onBlur)
+import Html.Events exposing (onClick, onInput, onBlur, onWithOptions)
 import Item
 import Item exposing (Msg(..))
 import Color
@@ -12,6 +12,7 @@ import Char
 import Keyboard
 import Debug
 import Mouse exposing (Position)
+import Json.Decode as Json exposing ((:=))
 
 -- TODO
 -- get window size
@@ -74,20 +75,31 @@ subHelp {id, model} =
 
 type Msg
   = Insert String
+  | InsertHere Position
   | Modify Int Item.Msg
   | ShuffleAll
   | Tick Time
   | ToggleRunning
   | NoOp
 
+dummyItem uid content position' =
+  { text = content ++ (toString uid), x = (50 + uid), y = (50 + uid), color = Color.black, size = 18, drag = Nothing, position = position', editing = False, nextText = "" }
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg ({items, uid, running } as model) =
   case msg of
+    InsertHere position ->
+      let
+        m2 = { model
+          | items = items ++ [ IndexedItem uid (dummyItem uid "content" position)]
+          , uid = uid + 1
+          }
+      in
+        update ((Modify uid) StartEditing) m2
     Insert content ->
       let
         m2 = { model
-          | items = items ++ [ IndexedItem uid { text = content ++ (toString uid), x = (50 + uid), y = (50 + uid), color = Color.black, size = 18, drag = Nothing, position = (Position (200 + uid) 200), editing = False, nextText = "" }]
+          | items = items ++ [ IndexedItem uid (dummyItem uid content (Position (200 + uid) 200))]
           , uid = uid + 1
           }
       in
@@ -150,10 +162,14 @@ view model =
   in
     div [ class "screen"
         , style [("height", "100vh")]
-      --  , onClick (Insert "some")
+        , insertClick
         ]
       [ div [] ([ status, shuffleAll, insertButton ]  ++ items)
       ]
+
+insertClick : Attribute Msg
+insertClick =
+  onWithOptions "click" { stopPropagation = True, preventDefault = True } (Json.map InsertHere Mouse.position)
 
 viewIndexedItem : IndexedItem -> Html Msg
 viewIndexedItem {id, model} =

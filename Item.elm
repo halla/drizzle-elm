@@ -2,7 +2,7 @@ port module Item exposing (..)
 
 import Html exposing (Html, div, text, button, Attribute, input)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onClick, on, onBlur, onInput)
+import Html.Events exposing (onClick, on, onBlur, onInput, onWithOptions)
 import Mouse exposing (Position)
 import Json.Decode as Json exposing ((:=))
 
@@ -40,6 +40,7 @@ type Msg
   | CommitEditing
   | StartEditing
   | NextText String
+  | NoOp
 
 
 -- UPDATE
@@ -63,6 +64,7 @@ update msg model =
       ({ model | drag = (Maybe.map (\{start} -> Drag start xy) model.drag) }, Cmd.none)
 
     DragEnd _ ->
+
       ({ model | position = (getPosition model), drag = Nothing }, Cmd.none)
 
     CommitEditing ->
@@ -71,7 +73,8 @@ update msg model =
       ({ model | editing = True, nextText = model.text}, focus ("#" ++ divId model ++ " input"))
     NextText text ->
       ({ model | nextText = text }, Cmd.none )
-
+    NoOp ->
+      ( model, Cmd.none )
 
 divId model =
   "item-" ++ model.text
@@ -87,7 +90,7 @@ subscriptions model =
       Sub.none
 
     Just _ ->
-      Sub.batch [ Mouse.moves DragAt, Mouse.ups DragEnd ]
+      Sub.batch [ Mouse.moves DragAt ]
 
 
 --  VIEW
@@ -116,20 +119,31 @@ renderStyle model =
 view : Model -> Html Msg
 view model =
   let
-    itemView = div [ onClick StartEditing ] [(text model.text)]
+    itemView = div [ editClick ] [(text model.text)]
     itemEdit = input
       [ onInput NextText
       , onBlur CommitEditing
       , value model.nextText
       , autofocus True
+      , editStopClick
       ] []
     item = if model.editing then itemEdit else itemView
 
   in
-    div [ id (divId model), onMouseDown, style (renderStyle model)]
+    div [ id (divId model), onMouseDown, onMouseUp, style (renderStyle model)]
       [
       item
       ]
+
+
+
+editClick : Attribute Msg
+editClick =
+  onWithOptions "click" { stopPropagation = True, preventDefault = True } (Json.succeed StartEditing)
+
+editStopClick : Attribute Msg
+editStopClick =
+  onWithOptions "click" { stopPropagation = True, preventDefault = True } (Json.succeed NoOp)
 
 px : Int -> String
 px number =
@@ -166,3 +180,7 @@ getPosition {position, drag} =
 onMouseDown : Attribute Msg
 onMouseDown =
   on "mousedown" (Json.map DragStart Mouse.position)
+
+onMouseUp : Attribute Msg
+onMouseUp =
+  onWithOptions "mouseup" { stopPropagation = True, preventDefault = True } (Json.map DragEnd Mouse.position)
