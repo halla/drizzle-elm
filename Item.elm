@@ -1,4 +1,4 @@
-module Item exposing (..)
+port module Item exposing (..)
 
 import Html exposing (Html, div, text, button, Attribute, input)
 import Html.Attributes exposing (..)
@@ -10,6 +10,7 @@ import Color
 import Random
 -- import Window
 
+port focus : String -> Cmd msg
 
 type alias Model =
   { text: String
@@ -67,9 +68,13 @@ update msg model =
     CommitEditing ->
       ({ model | editing = False, text = model.nextText, nextText = "" }, Cmd.none )
     StartEditing ->
-      ({ model | editing = True, nextText = model.text}, Cmd.none)
+      ({ model | editing = True, nextText = model.text}, focus ("#" ++ divId model ++ " input"))
     NextText text ->
       ({ model | nextText = text }, Cmd.none )
+
+
+divId model =
+  "item-" ++ model.text
 
 
 -- SUBSCRIPTIONS
@@ -121,7 +126,7 @@ view model =
     item = if model.editing then itemEdit else itemView
 
   in
-    div [onMouseDown, style (renderStyle model)]
+    div [ id (divId model), onMouseDown, style (renderStyle model)]
       [
       item
       ]

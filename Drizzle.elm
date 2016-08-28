@@ -85,12 +85,15 @@ update : Msg -> Model -> (Model, Cmd Msg)
 update msg ({items, uid, running } as model) =
   case msg of
     Insert content ->
-      ( { model
-        | items = items ++ [ IndexedItem uid { text = content, x = 50, y = 50, color = Color.black, size = 18, drag = Nothing, position = (Position 200 200), editing = True, nextText = "" }]
-        , uid = uid + 1
-        },
-        Cmd.none
-      )
+      let
+        m2 = { model
+          | items = items ++ [ IndexedItem uid { text = content ++ (toString uid), x = (50 + uid), y = (50 + uid), color = Color.black, size = 18, drag = Nothing, position = (Position (200 + uid) 200), editing = False, nextText = "" }]
+          , uid = uid + 1
+          }
+      in
+        Debug.log(content)
+        update ((Modify uid) StartEditing) m2
+
     Modify id msg ->
       let
         xs = List.map (updateHelp id msg) items
@@ -145,7 +148,10 @@ view model =
     items =
       List.map viewIndexedItem model.items
   in
-    div [class "screen"]
+    div [ class "screen"
+        , style [("height", "100vh")]
+      --  , onClick (Insert "some")
+        ]
       [ div [] ([ status, shuffleAll, insertButton ]  ++ items)
       ]
 

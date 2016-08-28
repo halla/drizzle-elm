@@ -1,3 +1,5 @@
+port module Main exposing (..)
+
 import Drizzle exposing (init, view, update, subscriptions)
 
 import Html.App

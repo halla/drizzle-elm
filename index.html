@@ -1,0 +1,31 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <title>Drizzle</title>
+  <script type="text/javascript" src="elm.js"></script>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+</body>
+
+<script type="text/javascript">
+var App = Elm.Main.fullscreen();
+App.ports.focus.subscribe(function(selector) {
+    setTimeout(function() {
+        var nodes = document.querySelectorAll(selector);
+        
+        if (nodes.length === 1 && document.activeElement !== nodes[0]) {
+
+            nodes[0].focus();
+        } else {
+
+        }
+    }, 50);
+});
+
+</script>
+
+</html>
