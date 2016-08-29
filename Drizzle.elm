@@ -60,8 +60,9 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
 --..Sub.none
   --NothingHappened
-  Sub.batch
-    ([ Keyboard.downs (\c -> if (Char.fromCode c == ' ') then ToggleRunning else NoOp)
+  Sub.batch(
+    [ Keyboard.downs (\c -> if (Char.fromCode c == ' ') then ToggleRunning else NoOp)
+    , Keyboard.downs (\c -> if (Char.fromCode c == 'I') then (insertIfReady model) else NoOp)
     , Time.every second Tick
     ] ++
     List.map subHelp model.items)
@@ -70,6 +71,12 @@ subscriptions model =
 subHelp : IndexedItem -> Sub Msg
 subHelp {id, model} =
   Sub.map (Modify id) (Item.subscriptions model)
+
+
+
+insertIfReady model =
+  if List.any (\i -> i.model.editing == True ) model.items then NoOp else (Insert "item")
+
 --  MODEL
 
 
@@ -164,8 +171,10 @@ view model =
         , style [("height", "100vh")]
         , insertClick
         ]
-      [ div [] ([ status, shuffleAll, insertButton ]  ++ items)
+      [ div [ class "controls" ] [ status, shuffleAll, insertButton ]
+      , div [ class "canvas" ] items
       ]
+
 
 insertClick : Attribute Msg
 insertClick =

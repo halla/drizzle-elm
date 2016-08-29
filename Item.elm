@@ -2,7 +2,7 @@ port module Item exposing (..)
 
 import Html exposing (Html, div, text, button, Attribute, input)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onClick, on, onBlur, onInput, onWithOptions)
+import Html.Events exposing (onClick, on, onBlur, onInput, onWithOptions, keyCode)
 import Mouse exposing (Position)
 import Json.Decode as Json exposing ((:=))
 
@@ -131,6 +131,7 @@ view model =
       , onBlur CommitEditing
       , value model.nextText
       , autofocus True
+      , onEnter CommitEditing
       ] []
     item = if model.editing then itemEdit else itemView
     element = div [ id (divId model), onMouseDown, onMouseUp, class "item", style (renderStyle model)]
@@ -145,6 +146,27 @@ view model =
     else
       element
 
+
+onEnter msg =
+  onKeyUp [ ( 13, msg ) ]
+
+onKeyUp options =
+    let
+        filter optionsToCheck code =
+            case optionsToCheck of
+                [] ->
+                    Err "key code is not in the list"
+
+                ( c, msg ) :: rest ->
+                    if (c == code) then
+                        Ok msg
+                    else
+                        filter rest code
+
+        keyCodes =
+            Json.customDecoder keyCode (filter options)
+    in
+      on "keyup" keyCodes
 
 
 editClick : Attribute Msg
