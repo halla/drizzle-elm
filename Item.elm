@@ -1,14 +1,17 @@
 port module Item exposing (..)
 
+import Events exposing (..)
+
 import Html exposing (Html, div, text, button, Attribute, input)
 import Html.Attributes exposing (..)
-import Html.Events exposing (onClick, on, onBlur, onInput, onWithOptions, keyCode)
+import Html.Events exposing (onClick, on, onBlur, onInput, onWithOptions)
 import Mouse exposing (Position)
 import Json.Decode as Json exposing ((:=))
 
 import Color
 import Random
--- import Window
+
+
 
 port focus : String -> Cmd msg
 
@@ -37,6 +40,7 @@ type Msg
   | DragAt Position
   | DragStart Position
   | DragEnd Position
+  | CancelEditing
   | CommitEditing
   | StartEditing
   | NextText String
@@ -66,6 +70,10 @@ update msg model =
     DragEnd _ ->
       ({ model | position = (getPosition model), drag = Nothing }, Cmd.none)
 
+    CancelEditing ->
+      case model.editing of
+        True -> ({ model | editing = False, nextText = "" }, Cmd.none)
+        False -> ( model, Cmd.none )
     CommitEditing ->
       ({ model | editing = False, text = model.nextText, nextText = "" }, Cmd.none )
     StartEditing ->
@@ -131,7 +139,7 @@ view model =
       , onBlur CommitEditing
       , value model.nextText
       , autofocus True
-      , onEnter CommitEditing
+      , onEscOrEnter CancelEditing CommitEditing
       ] []
     item = if model.editing then itemEdit else itemView
     element = div [ id (divId model), onMouseDown, onMouseUp, class "item", style (renderStyle model)]
@@ -145,28 +153,6 @@ view model =
       div [ class "modal-wrapper" ] [ element ]
     else
       element
-
-
-onEnter msg =
-  onKeyUp [ ( 13, msg ) ]
-
-onKeyUp options =
-    let
-        filter optionsToCheck code =
-            case optionsToCheck of
-                [] ->
-                    Err "key code is not in the list"
-
-                ( c, msg ) :: rest ->
-                    if (c == code) then
-                        Ok msg
-                    else
-                        filter rest code
-
-        keyCodes =
-            Json.customDecoder keyCode (filter options)
-    in
-      on "keyup" keyCodes
 
 
 editClick : Attribute Msg
