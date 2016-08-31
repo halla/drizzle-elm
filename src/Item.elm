@@ -10,8 +10,8 @@ import Json.Decode as Json exposing ((:=))
 
 import Color
 import Random
-
-
+import Test exposing (test)
+import Expect
 
 port focus : String -> Cmd msg
 
