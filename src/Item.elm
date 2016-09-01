@@ -55,7 +55,7 @@ update msg model =
     Shuffle ->
       (model ! [ genPosition, genColor, genSize ])
     SetRep (x, y) ->
-      ({ model | x = x, y = y }, Cmd.none)
+      ({ model | x = x, y = y, position = (Position x y) }, Cmd.none)
     SetColor color ->
       ({ model | color = color}, Cmd.none)
     SetSize size ->

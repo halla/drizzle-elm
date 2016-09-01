@@ -14,6 +14,8 @@ import Debug
 import Mouse exposing (Position)
 import Json.Decode as Json exposing ((:=))
 
+import Update.Extra exposing (sequence)
+
 -- TODO
 -- get window size
 -- import form
@@ -121,7 +123,8 @@ update msg ({items, uid, running } as model) =
       in
         ({ model | items = items }, cmd)
     ShuffleAll->
-      update ((Modify 1) Shuffle) model
+      model ! []
+        |> sequence update (List.map (\i -> ((Modify i.id) Shuffle))  model.items)
     Tick _ ->
       if
         running == True
@@ -169,10 +172,9 @@ view model =
   in
     div [ class "screen"
         , style [("height", "100vh")]
-        , insertClick
         ]
       [ div [ class "controls" ] [ status, shuffleAll, insertButton ]
-      , div [ class "canvas" ] items
+      , div [ class "canvas", insertClick] items
       ]
 
 
