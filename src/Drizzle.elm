@@ -1,7 +1,7 @@
 module Drizzle exposing (init, view, update, subscriptions)
 
 import Html.App as App
-import Html exposing (Html, div, button, text, input, Attribute)
+import Html exposing (Html, div, button, text, input, Attribute, textarea)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput, onBlur, onWithOptions)
 import Item
@@ -13,7 +13,7 @@ import Keyboard
 import Debug
 import Mouse exposing (Position)
 import Json.Decode as Json exposing ((:=))
-
+import String
 import Update.Extra exposing (sequence)
 
 -- TODO
@@ -36,6 +36,7 @@ type alias Model =
   { items : List IndexedItem
   , uid : Int
   , running : Bool
+  , importing : Maybe String
   }
 
 type alias IndexedItem =
@@ -49,6 +50,7 @@ init =
   ({ items = []
   , uid = 0
   , running = False
+  , importing = Nothing
   }, Cmd.none)
   --([ { id = 1, text = "moi", x = 50, y = 50, color = Color.black, size = 14
   --}, { id = 2, text = "fasdfe", x = 150, y = 150, color = Color.black, size = 14
@@ -85,6 +87,8 @@ insertIfReady model =
 type Msg
   = Insert String
   | InsertHere Position
+  | Import
+  | Importing String
   | Modify Int Item.Msg
   | ShuffleAll
   | Tick Time
@@ -114,6 +118,15 @@ update msg ({items, uid, running } as model) =
       in
         Debug.log(content)
         update ((Modify uid) StartEditing) m2
+    Import ->
+      case model.importing of
+        Just txt ->
+          { model | importing = Nothing } ! []
+            |> sequence update (importUpdater (parseImportString txt))
+        _ -> ( model, Cmd.none )
+
+    Importing txt ->
+      ( { model | importing = Just txt }, Cmd.none )
 
     Modify id msg ->
       let
@@ -122,9 +135,11 @@ update msg ({items, uid, running } as model) =
         cmd = Cmd.batch (List.map snd xs)
       in
         ({ model | items = items }, cmd)
+
     ShuffleAll->
       model ! []
         |> sequence update (List.map (\i -> ((Modify i.id) Shuffle))  model.items)
+
     Tick _ ->
       if
         running == True
@@ -133,14 +148,19 @@ update msg ({items, uid, running } as model) =
       else
         (model, Cmd.none)
     ToggleRunning ->
-      Debug.log "hip"
       ({ model | running = not running }, Cmd.none)
+
     NoOp ->
-      Debug.log "asdf"
       (model, Cmd.none)
 
       -- Cmd.Batch List.map (Modify _.id Item.Msg.Shuffle) items
 
+importUpdater  =
+  List.map (\x -> Insert x)
+
+parseImportString : String -> List String
+parseImportString txt =
+  String.split "\n" txt
 
 updateHelp : Int -> Item.Msg -> IndexedItem -> (IndexedItem, Cmd Msg)
 updateHelp targetId msg {id, model} =
@@ -173,9 +193,16 @@ view model =
     div [ class "screen"
         , style [("height", "100vh")]
         ]
-      [ div [ class "controls" ] [ status, shuffleAll, insertButton ]
+      [ div [ class "controls" ] [ status, shuffleAll, insertButton, (importArea model.importing)]
       , div [ class "canvas", insertClick] items
       ]
+
+importArea : Maybe String -> Html Msg
+importArea importing =
+  div []
+    [ textarea [ onInput Importing ] []
+    , button [ onClick Import ] [ text "Import" ]
+    ]
 
 
 insertClick : Attribute Msg
