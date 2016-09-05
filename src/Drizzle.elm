@@ -118,6 +118,7 @@ update msg ({items, uid, running } as model) =
       in
         Debug.log(content)
         update ((Modify uid) StartEditing) m2
+
     Import ->
       case model.importing of
         Just txt ->

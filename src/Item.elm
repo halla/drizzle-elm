@@ -53,7 +53,12 @@ update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
     Shuffle ->
-      (model ! [ genPosition, genColor, genSize ])
+      if
+        model.editing == True
+      then
+        ( model, Cmd.none )
+      else
+          (model ! [ genPosition, genColor, genSize ])
     SetRep (x, y) ->
       ({ model | x = x, y = y, position = (Position x y) }, Cmd.none)
     SetColor color ->
