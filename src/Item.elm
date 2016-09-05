@@ -23,8 +23,7 @@ type alias Model =
   , size: Int
   , position: Position
   , drag: Maybe Drag
-  , editing: Bool
-  , nextText: String
+  , editing: Maybe String
   }
 
 type alias Drag =
@@ -53,12 +52,12 @@ update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
   case msg of
     Shuffle ->
-      if
-        model.editing == True
-      then
-        ( model, Cmd.none )
-      else
+      case model.editing of
+        Just _ ->
+          ( model, Cmd.none )
+        Nothing ->
           (model ! [ genPosition, genColor, genSize ])
+
     SetRep (x, y) ->
       ({ model | x = x, y = y, position = (Position x y) }, Cmd.none)
     SetColor color ->
@@ -76,14 +75,18 @@ update msg model =
       ({ model | position = (getPosition model), drag = Nothing }, Cmd.none)
 
     CancelEditing ->
-      case model.editing of
-        True -> ({ model | editing = False, nextText = "" }, Cmd.none)
-        False -> ( model, Cmd.none )
+      ({ model | editing = Nothing }, Cmd.none)
+
     CommitEditing ->
-      ({ model | editing = False, text = model.nextText, nextText = "" }, Cmd.none )
+      case model.editing of
+        Just text' ->
+          ({ model | editing = Nothing, text = text' }, Cmd.none )
+        Nothing ->
+          ( model, Cmd.none )
+
     StartEditing ->
       let
-        doEdit =   ({ model | editing = True, nextText = model.text}, focus ("#" ++ divId model ++ " input"))
+        doEdit =   ({ model | editing = Just model.text }, focus ("#" ++ divId model ++ " input"))
       in
       case model.drag of
           Nothing ->
@@ -91,7 +94,7 @@ update msg model =
           Just {start,current} ->
             if start == current then doEdit else ( model, Cmd.none )
     NextText text ->
-      ({ model | nextText = text }, Cmd.none )
+      ({ model | editing = Just text }, Cmd.none )
     NoOp ->
       ( model, Cmd.none )
 
@@ -142,22 +145,23 @@ view model =
     itemEdit = input
       [ onInput NextText
       , onBlur CommitEditing
-      , value model.nextText
+      , value (Maybe.withDefault "" model.editing)
       , autofocus True
       , onEscOrEnter CancelEditing CommitEditing
       ] []
-    item = if model.editing then itemEdit else itemView
+    item = case model.editing of
+      Just _ -> itemEdit
+      Nothing -> itemView
     element = div [ id (divId model), onMouseDown, onMouseUp, class "item", style (renderStyle model)]
       [
       item
       ]
   in
-    if
-      model.editing
-    then
-      div [ class "modal-wrapper" ] [ element ]
-    else
-      element
+    case model.editing of
+      Just _ ->
+        div [ class "modal-wrapper" ] [ element ]
+      Nothing ->
+        element
 
 
 editClick : Attribute Msg

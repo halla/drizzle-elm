@@ -79,7 +79,7 @@ subHelp {id, model} =
 
 
 insertIfReady model =
-  if List.any (\i -> i.model.editing == True ) model.items then NoOp else (Insert "item")
+  if List.any (\i -> i.model.editing /= Nothing ) model.items then NoOp else (Insert "item")
 
 --  MODEL
 
@@ -96,7 +96,7 @@ type Msg
   | NoOp
 
 dummyItem uid content position' =
-  { text = content ++ (toString uid), x = (50 + uid), y = (50 + uid), color = Color.black, size = 18, drag = Nothing, position = position', editing = False, nextText = "" }
+  { text = content ++ (toString uid), x = (50 + uid), y = (50 + uid), color = Color.black, size = 18, drag = Nothing, position = position', editing = Nothing }
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg ({items, uid, running } as model) =
