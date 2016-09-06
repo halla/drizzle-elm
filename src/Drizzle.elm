@@ -56,6 +56,10 @@ init =
   --}, { id = 2, text = "fasdfe", x = 150, y = 150, color = Color.black, size = 14
   --}], Cmd.none)
 
+baseCanvasFontSize = 18
+
+lineHeight = 1.2
+
 
 
 -- SUBSCRIPTIONS
@@ -79,7 +83,9 @@ subHelp {id, model} =
 
 
 insertIfReady model =
-  if List.any (\i -> i.model.editing /= Nothing ) model.items then NoOp else (Insert "item")
+  if isEditing model then NoOp else (Insert "item")
+
+isEditing model = List.any (\i -> i.model.editing /= Nothing ) model.items
 
 --  MODEL
 
@@ -96,7 +102,7 @@ type Msg
   | NoOp
 
 dummyItem uid content position' =
-  { text = content ++ (toString uid), x = (50 + uid), y = (50 + uid), color = Color.black, size = 18, drag = Nothing, position = position', editing = Nothing }
+  { text = content ++ (toString uid), x = (50 + uid), y = (50 + uid), color = Color.black, size = baseCanvasFontSize, drag = Nothing, position = position', editing = Nothing }
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg ({items, uid, running } as model) =
@@ -112,7 +118,7 @@ update msg ({items, uid, running } as model) =
     Insert content ->
       let
         m2 = { model
-          | items = items ++ [ IndexedItem uid (dummyItem uid content (Position (200 + uid) 200))]
+          | items = items ++ [ IndexedItem uid (dummyItem uid content (Position 200 (200 + uid * round(baseCanvasFontSize * lineHeight))))]
           , uid = uid + 1
           }
       in
@@ -149,7 +155,12 @@ update msg ({items, uid, running } as model) =
       else
         (model, Cmd.none)
     ToggleRunning ->
-      ({ model | running = not running }, Cmd.none)
+      if
+        isEditing model
+      then
+        ( model, Cmd.none )
+      else
+        ({ model | running = not running }, Cmd.none)
 
     NoOp ->
       (model, Cmd.none)
