@@ -1,3 +1,7 @@
 .item { cursor: pointer; }
 .modal-wrapper { position: absolute; height: 100vh; }
-.canvas { height: 100%; }
+.screen { display: flex; min-height: 98vh; flex-direction: column; }
+.screen header { }
+.canvas { display: flex; flex: 1; position: relative;}
+footer { text-align: center; color: #aaa; }
+.controls { display: flex; }

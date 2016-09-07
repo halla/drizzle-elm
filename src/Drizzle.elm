@@ -212,10 +212,10 @@ view model =
     items =
       List.map viewIndexedItem model.items
   in
-    div [ class "screen"
-        , style [("height", "100vh")]
-        ]
-      [ div [ class "controls" ] [ status, shuffleAll, insertButton, (importArea model.importing)]
+    div [ class "screen" ]
+      [ header [] [
+          div [ class "controls" ] [ status, shuffleAll, insertButton, (importArea model.importing)]
+          ]
       , div [ class "canvas", insertClick] items
       , footer [] [ text "Drizzle" ]
       ]
