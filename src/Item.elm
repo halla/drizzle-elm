@@ -48,8 +48,8 @@ type Msg
 
 -- UPDATE
 
-update : Msg -> Model -> (Model, Cmd Msg)
-update msg model =
+update : Msg -> Model -> Int -> (Model, Cmd Msg)
+update msg model iid =
   case msg of
     Shuffle ->
       case model.editing of
@@ -86,7 +86,7 @@ update msg model =
 
     StartEditing ->
       let
-        doEdit =   ({ model | editing = Just model.text }, focus ("#" ++ divId model ++ " input"))
+        doEdit =   ({ model | editing = Just model.text }, focus ("#" ++ (divId model iid) ++ " input"))
       in
       case model.drag of
           Nothing ->
@@ -98,8 +98,9 @@ update msg model =
     NoOp ->
       ( model, Cmd.none )
 
-divId model id =
-  "item-" ++ id
+divId : Model -> Int -> String
+divId model iid =
+  "item-" ++ (toString iid)
 
 
 -- SUBSCRIPTIONS
@@ -138,8 +139,8 @@ renderStyle model =
 
 
 
-view : Model -> Html Msg
-view model id =
+view : Model -> Int ->  Html Msg
+view model iid =
   let
     itemView = div [ editClick ] [(text model.text)]
     itemEdit = input
@@ -152,7 +153,7 @@ view model id =
     item = case model.editing of
       Just _ -> itemEdit
       Nothing -> itemView
-    element = div [ id (divId model id), onMouseDown, onMouseUp, class "item", style (renderStyle model)]
+    element = div [ id (divId model iid), onMouseDown, onMouseUp, class "item", style (renderStyle model)]
       [
       item
       ]

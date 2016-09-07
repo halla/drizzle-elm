@@ -1,7 +1,7 @@
 module Drizzle exposing (init, view, update, subscriptions)
 
 import Html.App as App
-import Html exposing (Html, div, button, text, input, Attribute, textarea)
+import Html exposing (Html, div, button, text, input, Attribute, textarea, footer, header)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput, onBlur, onWithOptions)
 import Item
@@ -187,7 +187,7 @@ parseImportString txt =
 updateHelp : Int -> Item.Msg -> IndexedItem -> (IndexedItem, Cmd Msg)
 updateHelp targetId msg {id, model} =
   let
-    (model, cmd) = if (targetId == id) then (Item.update msg model) else (model, Cmd.none)
+    (model, cmd) = if (targetId == id) then (Item.update msg model id) else (model, Cmd.none)
   in
     (IndexedItem id model, Cmd.map (Modify id) cmd)
 
@@ -217,6 +217,7 @@ view model =
         ]
       [ div [ class "controls" ] [ status, shuffleAll, insertButton, (importArea model.importing)]
       , div [ class "canvas", insertClick] items
+      , footer [] [ text "Drizzle" ]
       ]
 
 importArea : Maybe String -> Html Msg
