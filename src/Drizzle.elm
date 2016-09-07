@@ -18,13 +18,16 @@ import Update.Extra exposing (sequence)
 
 -- TODO
 -- get window size
+-- animations
+-- multiple item sets
+-- step fwd / backward
+-- separate data from representation
+
+-- DONE
+-- drag items on screen
+-- add items
 -- import form
 -- single item input
--- drag items on screen
--- animations
--- add items
---
--- DONE
 -- random color
 -- random size
 -- multiple words
@@ -114,6 +117,7 @@ update msg ({items, uid, running } as model) =
           , uid = uid + 1
           }
       in
+        --(updateIfReady model (update ((Modify uid) StartEditing) m2))
         update ((Modify uid) StartEditing) m2
     Insert content ->
       let
@@ -155,17 +159,23 @@ update msg ({items, uid, running } as model) =
       else
         (model, Cmd.none)
     ToggleRunning ->
-      if
-        isEditing model
-      then
-        ( model, Cmd.none )
-      else
-        ({ model | running = not running }, Cmd.none)
+      updateIfReady model ({ model | running = not running }, Cmd.none)
+
 
     NoOp ->
       (model, Cmd.none)
 
       -- Cmd.Batch List.map (Modify _.id Item.Msg.Shuffle) items
+
+updateIfReady : Model -> (Model, Cmd Msg) -> (Model, Cmd Msg)
+updateIfReady model modelMsg =
+  if
+    isEditing model
+  then
+    ( model, Cmd.none )
+  else
+    modelMsg
+
 
 importUpdater  =
   List.map (\x -> Insert x)
@@ -223,4 +233,4 @@ insertClick =
 
 viewIndexedItem : IndexedItem -> Html Msg
 viewIndexedItem {id, model} =
-  App.map (Modify id) (Item.view model)
+  App.map (Modify id) (Item.view model id)

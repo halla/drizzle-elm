@@ -98,8 +98,8 @@ update msg model =
     NoOp ->
       ( model, Cmd.none )
 
-divId model =
-  "item-" ++ model.text
+divId model id =
+  "item-" ++ id
 
 
 -- SUBSCRIPTIONS
@@ -139,7 +139,7 @@ renderStyle model =
 
 
 view : Model -> Html Msg
-view model =
+view model id =
   let
     itemView = div [ editClick ] [(text model.text)]
     itemEdit = input
@@ -152,7 +152,7 @@ view model =
     item = case model.editing of
       Just _ -> itemEdit
       Nothing -> itemView
-    element = div [ id (divId model), onMouseDown, onMouseUp, class "item", style (renderStyle model)]
+    element = div [ id (divId model id), onMouseDown, onMouseUp, class "item", style (renderStyle model)]
       [
       item
       ]
