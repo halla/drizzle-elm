@@ -6,6 +6,9 @@ import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput, onBlur, onWithOptions)
 import Item
 import Item exposing (Msg(..))
+import Thought
+import Msgs exposing (Msg(..))
+
 import Color
 import Time exposing (Time, second)
 import Char
@@ -36,28 +39,20 @@ import Update.Extra exposing (sequence)
 
 
 type alias Model =
-  { items : List IndexedItem
-  , uid : Int
+  { thought : Thought.Model
   , running : Bool
   , importing : Maybe String
   }
 
-type alias IndexedItem =
-  { id : Int
-  , model : Item.Model
-  }
 
 
-init : (Model, Cmd Msg)
-init =
-  ({ items = []
-  , uid = 0
+init : (Model, Cmd Msgs.Msg)
+init = (
+  { thought = Thought.init
   , running = False
   , importing = Nothing
   }, Cmd.none)
-  --([ { id = 1, text = "moi", x = 50, y = 50, color = Color.black, size = 14
-  --}, { id = 2, text = "fasdfe", x = 150, y = 150, color = Color.black, size = 14
-  --}], Cmd.none)
+
 
 baseCanvasFontSize = 18
 
@@ -67,68 +62,35 @@ lineHeight = 1.2
 
 -- SUBSCRIPTIONS
 
-subscriptions : Model -> Sub Msg
+subscriptions : Model -> Sub Msgs.Msg
 subscriptions model =
 --..Sub.none
   --NothingHappened
   Sub.batch(
-    [ Keyboard.downs (\c -> if (Char.fromCode c == ' ') then ToggleRunning else NoOp)
-    , Keyboard.downs (\c -> if (Char.fromCode c == 'I') then (insertIfReady model) else NoOp)
+    [ Keyboard.downs (\c -> if (Char.fromCode c == ' ') then ToggleRunning else Msgs.NoOp)
+    , Keyboard.downs (\c -> if (Char.fromCode c == 'I') then (insertIfReady model) else Msgs.NoOp)
     , Time.every second Tick
     ] ++
-    List.map subHelp model.items)
+    List.map subHelp model.thought.items)
 
 
-subHelp : IndexedItem -> Sub Msg
+subHelp : Thought.IndexedItem -> Sub Msgs.Msg
 subHelp {id, model} =
   Sub.map (Modify id) (Item.subscriptions model)
 
 
 
 insertIfReady model =
-  if isEditing model then NoOp else (Insert "item")
+  if isEditing model then  Msgs.NoOp else (Insert "item")
 
-isEditing model = List.any (\i -> i.model.editing /= Nothing ) model.items
+isEditing model = List.any (\i -> i.model.editing /= Nothing ) model.thought.items
 
 --  MODEL
 
 
-type Msg
-  = Insert String
-  | InsertHere Position
-  | Import
-  | Importing String
-  | Modify Int Item.Msg
-  | ShuffleAll
-  | Tick Time
-  | ToggleRunning
-  | NoOp
-
-dummyItem uid content position' =
-  { text = content ++ (toString uid), x = (50 + uid), y = (50 + uid), color = Color.black, size = baseCanvasFontSize, drag = Nothing, position = position', editing = Nothing }
-
-update : Msg -> Model -> (Model, Cmd Msg)
-update msg ({items, uid, running } as model) =
+update : Msgs.Msg -> Model -> (Model, Cmd Msgs.Msg)
+update msg ({ running } as model) =
   case msg of
-    InsertHere position ->
-      let
-        m2 = { model
-          | items = items ++ [ IndexedItem uid (dummyItem uid "content" position)]
-          , uid = uid + 1
-          }
-      in
-        --(updateIfReady model (update ((Modify uid) StartEditing) m2))
-        update ((Modify uid) StartEditing) m2
-    Insert content ->
-      let
-        m2 = { model
-          | items = items ++ [ IndexedItem uid (dummyItem uid content (Position 200 (200 + uid * round(baseCanvasFontSize * lineHeight))))]
-          , uid = uid + 1
-          }
-      in
-        Debug.log(content)
-        update ((Modify uid) StartEditing) m2
-
     Import ->
       case model.importing of
         Just txt ->
@@ -139,17 +101,29 @@ update msg ({items, uid, running } as model) =
     Importing txt ->
       ( { model | importing = Just txt }, Cmd.none )
 
-    Modify id msg ->
+    InsertHere position ->
       let
-        xs = List.map (updateHelp id msg) items
-        items = List.map fst xs
-        cmd = Cmd.batch (List.map snd xs)
+        (model', cmd') = Thought.update msg model.thought
       in
-        ({ model | items = items }, cmd)
+        ({ model | thought = model' }, cmd')
+
+    Insert content ->
+      let
+        (model', cmd') = Thought.update msg model.thought
+      in
+        ({ model | thought = model' }, cmd')
+
+    Modify id msg' ->
+      let
+        (model', cmd') = Thought.update msg model.thought
+      in
+        ({ model | thought = model' }, cmd')
 
     ShuffleAll->
-      model ! []
-        |> sequence update (List.map (\i -> ((Modify i.id) Shuffle))  model.items)
+      let
+        (model', cmd') = Thought.update msg model.thought
+      in
+        ({ model | thought = model' }, cmd')
 
     Tick _ ->
       if
@@ -160,14 +134,12 @@ update msg ({items, uid, running } as model) =
         (model, Cmd.none)
     ToggleRunning ->
       updateIfReady model ({ model | running = not running }, Cmd.none)
-
-
-    NoOp ->
+    Msgs.NoOp ->
       (model, Cmd.none)
 
       -- Cmd.Batch List.map (Modify _.id Item.Msg.Shuffle) items
 
-updateIfReady : Model -> (Model, Cmd Msg) -> (Model, Cmd Msg)
+updateIfReady : Model -> (Model, Cmd Msgs.Msg) -> (Model, Cmd Msgs.Msg)
 updateIfReady model modelMsg =
   if
     isEditing model
@@ -184,23 +156,9 @@ parseImportString : String -> List String
 parseImportString txt =
   String.split "\n" txt
 
-updateHelp : Int -> Item.Msg -> IndexedItem -> (IndexedItem, Cmd Msg)
-updateHelp targetId msg {id, model} =
-  let
-    (model, cmd) = if (targetId == id) then (Item.update msg model id) else (model, Cmd.none)
-  in
-    (IndexedItem id model, Cmd.map (Modify id) cmd)
 
 
-  --combine (List.map (Item.update msg) model)
-
---combine : List (Item.Model, Cmd Item.Msg) -> (Model, Cmd Item.Msg)
---combine list =
-  --((List.map fst list), Cmd.batch (List.map snd list))
-
-
-
-view : Model -> Html Msg
+view : Model -> Html Msgs.Msg
 view model =
   let
     status =
@@ -210,7 +168,7 @@ view model =
     insertButton =
       button [ onClick (Insert "some") ] [ text "Insert" ]
     items =
-      List.map viewIndexedItem model.items
+      List.map Thought.viewIndexedItem model.thought.items
   in
     div [ class "screen" ]
       [ header [] [
@@ -220,7 +178,7 @@ view model =
       , footer [] [ text "Drizzle" ]
       ]
 
-importArea : Maybe String -> Html Msg
+importArea : Maybe String -> Html Msgs.Msg
 importArea importing =
   div []
     [ textarea [ onInput Importing ] []
@@ -228,10 +186,6 @@ importArea importing =
     ]
 
 
-insertClick : Attribute Msg
+insertClick : Attribute Msgs.Msg
 insertClick =
   onWithOptions "click" { stopPropagation = True, preventDefault = True } (Json.map InsertHere Mouse.position)
-
-viewIndexedItem : IndexedItem -> Html Msg
-viewIndexedItem {id, model} =
-  App.map (Modify id) (Item.view model id)
