@@ -1,23 +1,27 @@
 module Thought exposing (..)
 
+import Random
 import Msgs exposing (Msg(..))
 import Item
 import Item exposing (Msg(..))
 import Mouse exposing (Position)
 import Color
-import Html exposing (Html)
 import Update.Extra exposing (sequence)
 import Html.App as App
+import Html exposing (Html, div)
+import Html.Attributes exposing (class)
 
 --- MODEL
 init =
   { items = []
   , uid = 0
+  , seed = (Random.initialSeed 4344362345)
   }
 
 type alias Model =
   { items : List IndexedItem
   , uid : Int
+  , seed : Random.Seed
   }
 
 type alias IndexedItem =
@@ -29,11 +33,19 @@ baseCanvasFontSize = 18
 
 lineHeight = 1.2
 
+nItems = 10
 
 dummyItem uid content position' =
   { text = content ++ (toString uid), x = (50 + uid), y = (50 + uid), color = Color.black, size = baseCanvasFontSize, drag = Nothing, position = position', editing = Nothing }
 
 --- VIEW
+
+view : Model -> Html Msgs.Msg
+view model =
+  let
+    visibleItems = List.take nItems model.items
+  in
+    div [ class "thought" ] (List.map viewIndexedItem visibleItems)
 
 viewIndexedItem : IndexedItem -> Html Msgs.Msg
 viewIndexedItem {id, model} =
@@ -72,10 +84,15 @@ update msg ({items, uid} as model) =
         ({ model | items = items }, cmd)
 
     ShuffleAll->
-      model ! []
-        |> sequence update (List.map (\i -> ((Modify i.id) Shuffle))  model.items)
+      let
+        (rndList, seed') = Random.step (Random.list (List.length model.items) (Random.int 1 100)) model.seed
+        items' = List.map2 (,) rndList model.items |> List.sortBy fst |> List.unzip |> snd
+      in
+        { model | items = items', seed = seed' } ! []
+          |> sequence update (List.map (\i -> ((Modify i.id) Shuffle))  model.items)
 
     _ -> ( model, Cmd.none )
+    
 updateHelp : Int -> Item.Msg -> IndexedItem -> (IndexedItem, Cmd Msgs.Msg)
 updateHelp targetId msg {id, model} =
   let

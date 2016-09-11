@@ -167,14 +167,14 @@ view model =
       button [ onClick ShuffleAll ] [ text "ShuffleAll"]
     insertButton =
       button [ onClick (Insert "some") ] [ text "Insert" ]
-    items =
-      List.map Thought.viewIndexedItem model.thought.items
+    thought =
+      Thought.view model.thought
   in
     div [ class "screen" ]
       [ header [] [
           div [ class "controls" ] [ status, shuffleAll, insertButton, (importArea model.importing)]
           ]
-      , div [ class "canvas", insertClick] items
+      , div [ class "canvas", insertClick] [ thought ]
       , footer [] [ text "Drizzle" ]
       ]
 
