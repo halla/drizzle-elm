@@ -38,6 +38,8 @@ nItems = 10
 dummyItem uid content position' =
   { text = content, x = (50 + uid), y = (50 + uid), color = Color.black, size = baseCanvasFontSize, drag = Nothing, position = position', editing = Nothing }
 
+isEditing model = List.any (\i -> i.model.editing /= Nothing ) model.items
+
 --- VIEW
 
 view : Model -> Html Msgs.Msg

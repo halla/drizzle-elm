@@ -4,18 +4,20 @@ import Html.App as App
 import Html exposing (Html, div, button, text, input, Attribute, textarea, footer, header)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onClick, onInput, onBlur, onWithOptions)
+
+
 import Item
 import Item exposing (Msg(..))
 import Thought
+import Controls
 import Msgs exposing (Msg(..))
 
-import Color
 import Time exposing (Time, second)
-import Char
-import Keyboard
+
 import Debug
-import Mouse exposing (Position)
-import Json.Decode as Json exposing ((:=))
+
+import Keyboard
+import Char
 import String
 import Update.Extra exposing (sequence)
 
@@ -37,6 +39,7 @@ import Update.Extra exposing (sequence)
 -- return multiple commands
 
 
+-- MODEL
 
 type alias Model =
   { thought : Thought.Model
@@ -81,11 +84,11 @@ subHelp {id, model} =
 
 
 insertIfReady model =
-  if isEditing model then  Msgs.NoOp else (Insert "item" True)
+  if Thought.isEditing model.thought then  Msgs.NoOp else (Insert "item" True)
 
-isEditing model = List.any (\i -> i.model.editing /= Nothing ) model.thought.items
 
---  MODEL
+
+--  UPDATE
 
 
 update : Msgs.Msg -> Model -> (Model, Cmd Msgs.Msg)
@@ -149,7 +152,7 @@ update msg ({ running } as model) =
 updateIfReady : Model -> (Model, Cmd Msgs.Msg) -> (Model, Cmd Msgs.Msg)
 updateIfReady model modelMsg =
   if
-    isEditing model
+    Thought.isEditing model.thought
   then
     ( model, Cmd.none )
   else
@@ -157,7 +160,7 @@ updateIfReady model modelMsg =
 
 
 importUpdater  =
-  List.map (\x -> Insert x False)
+  List.map (\txt -> Insert txt False)
 
 parseImportString : String -> List String
 parseImportString txt =
@@ -165,34 +168,12 @@ parseImportString txt =
 
 
 
+--- VIEW
+
 view : Model -> Html Msgs.Msg
 view model =
-  let
-    status =
-      div [] [ text (if model.running then "Running" else "Stopped")]
-    shuffleAll =
-      button [ onClick ShuffleAll ] [ text "ShuffleAll"]
-    insertButton =
-      button [ onClick (Insert "some" True) ] [ text "Insert" ]
-    thought =
-      Thought.view model.thought
-  in
-    div [ class "screen" ]
-      [ header [] [
-          div [ class "controls" ] [ status, shuffleAll, insertButton, (importArea model.importing)]
-          ]
-      , div [ class "canvas", insertClick] [ thought ]
-      , footer [] [ text "Drizzle" ]
-      ]
-
-importArea : Maybe String -> Html Msgs.Msg
-importArea importing =
-  div []
-    [ textarea [ onInput Importing ] []
-    , button [ onClick Import ] [ text "Import" ]
+  div [ class "screen" ]
+    [ header [] [ Controls.view model ]
+    , div [ class "canvas", Controls.insertClick] [ Thought.view model.thought ]
+    , footer [] [ text "Drizzle" ]
     ]
-
-
-insertClick : Attribute Msgs.Msg
-insertClick =
-  onWithOptions "click" { stopPropagation = True, preventDefault = True } (Json.map InsertHereAndFocus Mouse.position)
