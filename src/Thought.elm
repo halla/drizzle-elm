@@ -36,7 +36,7 @@ lineHeight = 1.2
 nItems = 10
 
 dummyItem uid content position' =
-  { text = content ++ (toString uid), x = (50 + uid), y = (50 + uid), color = Color.black, size = baseCanvasFontSize, drag = Nothing, position = position', editing = Nothing }
+  { text = content, x = (50 + uid), y = (50 + uid), color = Color.black, size = baseCanvasFontSize, drag = Nothing, position = position', editing = Nothing }
 
 --- VIEW
 
@@ -57,7 +57,8 @@ viewIndexedItem {id, model} =
 update : Msgs.Msg -> Model -> (Model, Cmd Msgs.Msg)
 update msg ({items, uid} as model) =
   case msg of
-    InsertHere position ->
+    -- how to do this more nicely?
+    InsertHereAndFocus position ->
       let
         m2 = { model
           | items = items ++ [ IndexedItem uid (dummyItem uid "content" position)]
@@ -66,15 +67,31 @@ update msg ({items, uid} as model) =
       in
         --(updateIfReady model (update ((Modify uid) StartEditing) m2))
         update ((Modify uid) StartEditing) m2
-    Insert content ->
+
+    InsertHere position ->
+      let
+        m2 = { model
+          | items = items ++ [ IndexedItem uid (dummyItem uid "content" position)]
+          , uid = uid + 1
+          }
+      in
+        (m2, Cmd.none)
+
+    Insert content doFocus ->
       let
         m2 = { model
           | items = items ++ [ IndexedItem uid (dummyItem uid content (Position 200 (200 + uid * round(baseCanvasFontSize * lineHeight))))]
           , uid = uid + 1
           }
       in
-        Debug.log(content)
-        update ((Modify uid) StartEditing) m2
+
+        if
+          (doFocus)
+        then
+          update ((Modify uid) StartEditing) m2
+        else
+          ( m2, Cmd.none )
+
     Modify id msg ->
       let
         xs = List.map (updateHelp id msg) items
@@ -92,7 +109,7 @@ update msg ({items, uid} as model) =
           |> sequence update (List.map (\i -> ((Modify i.id) Shuffle))  model.items)
 
     _ -> ( model, Cmd.none )
-    
+
 updateHelp : Int -> Item.Msg -> IndexedItem -> (IndexedItem, Cmd Msgs.Msg)
 updateHelp targetId msg {id, model} =
   let

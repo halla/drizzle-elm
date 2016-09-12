@@ -81,7 +81,7 @@ subHelp {id, model} =
 
 
 insertIfReady model =
-  if isEditing model then  Msgs.NoOp else (Insert "item")
+  if isEditing model then  Msgs.NoOp else (Insert "item" True)
 
 isEditing model = List.any (\i -> i.model.editing /= Nothing ) model.thought.items
 
@@ -101,13 +101,20 @@ update msg ({ running } as model) =
     Importing txt ->
       ( { model | importing = Just txt }, Cmd.none )
 
+    InsertHereAndFocus position ->
+      let
+        (model', cmd') = Thought.update msg model.thought
+      in
+        ({ model | thought = model' }, cmd')
+
     InsertHere position ->
       let
         (model', cmd') = Thought.update msg model.thought
       in
         ({ model | thought = model' }, cmd')
 
-    Insert content ->
+
+    Insert content doFocus ->
       let
         (model', cmd') = Thought.update msg model.thought
       in
@@ -150,7 +157,7 @@ updateIfReady model modelMsg =
 
 
 importUpdater  =
-  List.map (\x -> Insert x)
+  List.map (\x -> Insert x False)
 
 parseImportString : String -> List String
 parseImportString txt =
@@ -166,7 +173,7 @@ view model =
     shuffleAll =
       button [ onClick ShuffleAll ] [ text "ShuffleAll"]
     insertButton =
-      button [ onClick (Insert "some") ] [ text "Insert" ]
+      button [ onClick (Insert "some" True) ] [ text "Insert" ]
     thought =
       Thought.view model.thought
   in
@@ -188,4 +195,4 @@ importArea importing =
 
 insertClick : Attribute Msgs.Msg
 insertClick =
-  onWithOptions "click" { stopPropagation = True, preventDefault = True } (Json.map InsertHere Mouse.position)
+  onWithOptions "click" { stopPropagation = True, preventDefault = True } (Json.map InsertHereAndFocus Mouse.position)

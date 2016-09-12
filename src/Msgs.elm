@@ -4,7 +4,8 @@ import Mouse exposing (Position)
 import Time exposing (Time)
 
 type Msg
-  = Insert String
+  = Insert String Bool
+  | InsertHereAndFocus Position
   | InsertHere Position
   | Import
   | Importing String
